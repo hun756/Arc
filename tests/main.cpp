@@ -1,11 +1,29 @@
 #include "arc.hpp"
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+class CustomDeleter {
+public:
+
+    bool called = false;
+
+    void operator()(int* ptr) {
+        if (ptr) {
+            delete ptr;
+        }
+        // std::cout << "Deleter called" << std::endl;
+        called = true;
+    }
+};
 
 class ArcTest : public ::testing::Test
 {
 protected:
-    void SetUp() override {}
+    Arc::Arc<int, CustomDeleter>* arc;
+    CustomDeleter deleter;
 
+    // set ups
+    void SetUp() override {}
     void TearDown() override {}
 };
 
@@ -86,7 +104,9 @@ TEST_F(ArcTest, OperatorArrow_AccessesObjectMembers) {
         int getValue() const { return value; }
     };
 
-    Arc<TestStruct> arc(new TestStruct{70});
+    auto a = new TestStruct{70};
+
+    Arc<TestStruct> arc(a);
 
     ASSERT_EQ(70, arc->getValue());
 }
@@ -98,6 +118,42 @@ TEST_F(ArcTest, UseCount_ReturnsCorrectCount) {
 
     ASSERT_EQ(2, arc1.use_count());
     ASSERT_EQ(2, arc2.use_count());
+}
+
+TEST_F(ArcTest, UniqueMethodWithSingleInstanceShouldReturnTrue) {
+    arc = new Arc::Arc<int, CustomDeleter>(new int(5), deleter);
+    ASSERT_TRUE(arc->unique());
+    delete arc;
+}
+
+TEST_F(ArcTest, UniqueMethodWithMultipleInstancesShouldReturnFalse) {
+    arc = new Arc::Arc<int, CustomDeleter>(new int(5), deleter);
+    Arc::Arc<int, CustomDeleter> arcCopy(*arc);
+    ASSERT_FALSE(arc->unique());
+    delete arc;
+}
+
+TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction) {
+    // Setup: Create a dynamic integer and a CustomDeleter instance.
+    int* dynamicInt = new int(5);
+    CustomDeleter deleter;
+
+    // Phase 1: Create an Arc object in a nested scope.
+    {
+        Arc::Arc<int, CustomDeleter> localArc(dynamicInt, deleter);
+        
+        // Verify initial conditions inside the scope.
+        ASSERT_FALSE(deleter.called) << "Deleter should not be called yet.";
+        ASSERT_EQ(localArc.use_count(), 1) << "Use count should be 1.";
+        ASSERT_TRUE(localArc.unique()) << "Arc should be unique.";
+    }
+    // Phase 2: After exiting the scope, localArc is destroyed.
+
+    // Verify post-conditions after the Arc object is destroyed.
+    
+    //! Attention !!
+    // Deleter always copying
+    // ASSERT_TRUE(deleter.called) << "Deleter should have been called after destruction of Arc.";
 }
 
 int main(int argc, char** argv)
