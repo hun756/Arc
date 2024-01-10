@@ -1,11 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(AdvancedCppProject VERSION 1.0)
+project(arc VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-set(CMAKE_CXX_STANDARD 11)
 
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
