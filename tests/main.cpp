@@ -1,6 +1,5 @@
 #include "arc.hpp"
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 
 class CustomDeleter {
 public:
