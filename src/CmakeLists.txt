@@ -1,10 +1,5 @@
-# Include the project's include directory
 include_directories(${PROJECT_SOURCE_DIR}/include)
-
-# Add source files
 file(GLOB SOURCES "*.cpp")
-
-# Create a library
 add_library(arc ${SOURCES})
 
 # If you want to create a shared library, use:
