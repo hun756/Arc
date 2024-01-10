@@ -1,0 +1,9 @@
+include_directories(${PROJECT_SOURCE_DIR}/include)
+file(GLOB SOURCES "*.cpp")
+add_library(arc ${SOURCES})
+
+# If you want to create a shared library, use:
+# add_library(arc SHARED ${SOURCES})
+
+# If you want to create a static library, use:
+# add_library(arc STATIC ${SOURCES})
