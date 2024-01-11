@@ -176,7 +176,7 @@ TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction)
     // Verify post-conditions after the Arc object is destroyed.
 
     //! Attention !!
-    // Deleter always copying
+    //! Deleter always copying
     // ASSERT_TRUE(deleter.called) << "Deleter should have been called after destruction of Arc.";
 }
 

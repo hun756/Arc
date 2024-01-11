@@ -1,3 +1,3 @@
 include_directories(${PROJECT_SOURCE_DIR}/include)
-add_executable(arc_test main.cpp) # List your test source files here
+add_executable(arc_test main.cpp arctestresource.cpp) # List your test source files here
 target_link_libraries(arc_test gtest gtest_main arc)
