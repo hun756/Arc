@@ -24,21 +24,28 @@ namespace Arc
         std::atomic<unsigned int>* weakCounter;
         Deleter deleter;
 
-        void release_memory()
+        void acquire()
         {
-            if (ptr && counter->fetch_sub(1) == 1) {
-                deleter(ptr);
-                delete counter;
-                if (weakCounter->fetch_sub(1) == 1) {
-                    delete weakCounter;
-                }
+            if (ptr) {
+                counter->fetch_add(1, std::memory_order_relaxed);
+                weakCounter->fetch_add(1, std::memory_order_relaxed);
             }
         }
 
-        void release_weak()
+        void release_memory()
         {
-            if (weakCounter && weakCounter->fetch_sub(1) == 1) {
-                if (counter->load() == 0) {
+            if (ptr && counter->fetch_sub(1, std::memory_order_release) == 1) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                deleter(ptr);
+                release_weak(true);
+            }
+        }
+
+        void release_weak(bool skipCounterDecrement = false)
+        {
+            if (weakCounter && (skipCounterDecrement || weakCounter->fetch_sub(1, std::memory_order_release) == 1)) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                if (counter->load(std::memory_order_relaxed) == 0) {
                     delete counter;
                 }
                 delete weakCounter;
@@ -59,8 +66,7 @@ namespace Arc
         Arc(const Arc& other)
             : ptr(other.ptr), counter(other.counter), weakCounter(other.weakCounter), deleter(other.deleter)
         {
-            counter->fetch_add(1);
-            weakCounter->fetch_add(1);
+            acquire();
         }
 
         Arc& operator=(const Arc& other)
@@ -71,34 +77,27 @@ namespace Arc
                 counter = other.counter;
                 weakCounter = other.weakCounter;
                 deleter = other.deleter;
-                counter->fetch_add(1);
-                weakCounter->fetch_add(1);
+                acquire();
             }
             return *this;
         }
 
         Arc(Arc&& other) noexcept
-            : ptr(other.ptr),
-              counter(other.counter),
-              weakCounter(other.weakCounter),
+            : ptr(std::exchange(other.ptr, nullptr)),
+              counter(std::exchange(other.counter, nullptr)),
+              weakCounter(std::exchange(other.weakCounter, nullptr)),
               deleter(std::move(other.deleter))
         {
-            other.ptr = nullptr;
-            other.counter = nullptr;
-            other.weakCounter = nullptr;
         }
 
         Arc& operator=(Arc&& other) noexcept
         {
             if (this != &other) {
                 release_memory();
-                ptr = other.ptr;
-                counter = other.counter;
-                weakCounter = other.weakCounter;
+                ptr = std::exchange(other.ptr, nullptr);
+                counter = std::exchange(other.counter, nullptr);
+                weakCounter = std::exchange(other.weakCounter, nullptr);
                 deleter = std::move(other.deleter);
-                other.ptr = nullptr;
-                other.counter = nullptr;
-                other.weakCounter = nullptr;
             }
             return *this;
         }
@@ -108,14 +107,15 @@ namespace Arc
             assert(ptr);
             return *ptr;
         }
+
         T* operator->() const
         {
             assert(ptr);
             return ptr;
         }
 
-        bool unique() const { return counter && counter->load() == 1; }
-        unsigned int use_count() const { return counter ? counter->load() : 0; }
+        bool unique() const { return counter && counter->load(std::memory_order_relaxed) == 1; }
+        unsigned int use_count() const { return counter ? counter->load(std::memory_order_relaxed) : 0; }
     };
 
     template <typename T, typename Deleter = std::default_delete<T>>
@@ -127,16 +127,21 @@ namespace Arc
         std::atomic<unsigned int>* weakCounter;
 
     public:
+        WeakArc() : ptr(nullptr), counter(nullptr), weakCounter(nullptr) {}
+
         explicit WeakArc(const Arc<T, Deleter>& strongArc)
             : ptr(strongArc.ptr), counter(strongArc.counter), weakCounter(strongArc.weakCounter)
         {
-            weakCounter->fetch_add(1);
+            if (weakCounter) {
+                weakCounter->fetch_add(1, std::memory_order_relaxed);
+            }
         }
 
         ~WeakArc()
         {
-            if (weakCounter && weakCounter->fetch_sub(1) == 1) {
-                if (counter->load() == 0) {
+            if (weakCounter && weakCounter->fetch_sub(1, std::memory_order_release) == 1) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                if (counter->load(std::memory_order_relaxed) == 0) {
                     delete counter;
                 }
                 delete weakCounter;
@@ -145,8 +150,8 @@ namespace Arc
 
         Arc<T, Deleter> lock() const
         {
-            if (counter && counter->load() > 0) {
-                return Arc<T, Deleter>(*this);
+            if (counter && counter->load(std::memory_order_relaxed) > 0) {
+                return Arc<T, Deleter>(ptr);
             }
             return Arc<T, Deleter>();
         }

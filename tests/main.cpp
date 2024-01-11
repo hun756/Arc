@@ -1,12 +1,13 @@
 #include "arc.hpp"
 #include <gtest/gtest.h>
 
-class CustomDeleter {
+class CustomDeleter
+{
 public:
-
     bool called = false;
 
-    void operator()(int* ptr) {
+    void operator()(int* ptr)
+    {
         if (ptr) {
             delete ptr;
         }
@@ -25,6 +26,20 @@ protected:
     void SetUp() override {}
     void TearDown() override {}
 };
+
+class ArcWeakArcTest : public ::testing::Test
+{
+protected:
+    struct TestObject {
+        static int aliveCount;
+        TestObject() { ++aliveCount; }
+        ~TestObject() { --aliveCount; }
+    };
+
+    void SetUp() override { TestObject::aliveCount = 0; }
+};
+
+int ArcWeakArcTest::TestObject::aliveCount = 0;
 
 TEST_F(ArcTest, Constructor_InitializesWithNonNullptr_IncrementsCounter)
 {
@@ -47,7 +62,8 @@ TEST_F(ArcTest, CopyConstructor_CopiesArc_IncrementsCounter)
     ASSERT_EQ(2, copy.use_count());
 }
 
-TEST_F(ArcTest, MoveConstructor_MovesArc_ResetsOldValue) {
+TEST_F(ArcTest, MoveConstructor_MovesArc_ResetsOldValue)
+{
     using Arc::Arc;
     Arc<int> original(new int(10));
     Arc<int> moved(std::move(original));
@@ -55,7 +71,8 @@ TEST_F(ArcTest, MoveConstructor_MovesArc_ResetsOldValue) {
     ASSERT_EQ(10, *moved);
 }
 
-TEST_F(ArcTest, Destructor_ReleaseResource_WhenLastArcIsDestroyed) {
+TEST_F(ArcTest, Destructor_ReleaseResource_WhenLastArcIsDestroyed)
+{
     using Arc::Arc;
     auto raw_ptr = new int(20);
     {
@@ -69,7 +86,8 @@ TEST_F(ArcTest, Destructor_ReleaseResource_WhenLastArcIsDestroyed) {
     // Check if resource is released properly. Requires manual verification or a custom deleter.
 }
 
-TEST_F(ArcTest, AssignmentOperator_AssignsArc_IncrementsCounter) {
+TEST_F(ArcTest, AssignmentOperator_AssignsArc_IncrementsCounter)
+{
     using Arc::Arc;
     Arc<int> arc1(new int(30));
     Arc<int> arc2(new int(40));
@@ -80,7 +98,8 @@ TEST_F(ArcTest, AssignmentOperator_AssignsArc_IncrementsCounter) {
     ASSERT_EQ(2, arc2.use_count());
 }
 
-TEST_F(ArcTest, SelfAssignment_DoesNotModifyArc) {
+TEST_F(ArcTest, SelfAssignment_DoesNotModifyArc)
+{
     using Arc::Arc;
     Arc<int> arc(new int(50));
     arc = arc;
@@ -89,14 +108,16 @@ TEST_F(ArcTest, SelfAssignment_DoesNotModifyArc) {
     ASSERT_EQ(1, arc.use_count());
 }
 
-TEST_F(ArcTest, OperatorDereference_AccessesObject) {
+TEST_F(ArcTest, OperatorDereference_AccessesObject)
+{
     using Arc::Arc;
     Arc<int> arc(new int(60));
 
     ASSERT_EQ(60, *arc);
 }
 
-TEST_F(ArcTest, OperatorArrow_AccessesObjectMembers) {
+TEST_F(ArcTest, OperatorArrow_AccessesObjectMembers)
+{
     using Arc::Arc;
     struct TestStruct {
         int value;
@@ -110,7 +131,8 @@ TEST_F(ArcTest, OperatorArrow_AccessesObjectMembers) {
     ASSERT_EQ(70, arc->getValue());
 }
 
-TEST_F(ArcTest, UseCount_ReturnsCorrectCount) {
+TEST_F(ArcTest, UseCount_ReturnsCorrectCount)
+{
     using Arc::Arc;
     Arc<int> arc1(new int(80));
     Arc<int> arc2 = arc1;
@@ -119,20 +141,23 @@ TEST_F(ArcTest, UseCount_ReturnsCorrectCount) {
     ASSERT_EQ(2, arc2.use_count());
 }
 
-TEST_F(ArcTest, UniqueMethodWithSingleInstanceShouldReturnTrue) {
+TEST_F(ArcTest, UniqueMethodWithSingleInstanceShouldReturnTrue)
+{
     arc = new Arc::Arc<int, CustomDeleter>(new int(5), deleter);
     ASSERT_TRUE(arc->unique());
     delete arc;
 }
 
-TEST_F(ArcTest, UniqueMethodWithMultipleInstancesShouldReturnFalse) {
+TEST_F(ArcTest, UniqueMethodWithMultipleInstancesShouldReturnFalse)
+{
     arc = new Arc::Arc<int, CustomDeleter>(new int(5), deleter);
     Arc::Arc<int, CustomDeleter> arcCopy(*arc);
     ASSERT_FALSE(arc->unique());
     delete arc;
 }
 
-TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction) {
+TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction)
+{
     // Setup: Create a dynamic integer and a CustomDeleter instance.
     int* dynamicInt = new int(5);
     CustomDeleter deleter;
@@ -140,7 +165,7 @@ TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction) {
     // Phase 1: Create an Arc object in a nested scope.
     {
         Arc::Arc<int, CustomDeleter> localArc(dynamicInt, deleter);
-        
+
         // Verify initial conditions inside the scope.
         ASSERT_FALSE(deleter.called) << "Deleter should not be called yet.";
         ASSERT_EQ(localArc.use_count(), 1) << "Use count should be 1.";
@@ -149,10 +174,39 @@ TEST_F(ArcTest, CustomDeleterShouldBeCalledOnLastObjectDestruction) {
     // Phase 2: After exiting the scope, localArc is destroyed.
 
     // Verify post-conditions after the Arc object is destroyed.
-    
+
     //! Attention !!
     // Deleter always copying
     // ASSERT_TRUE(deleter.called) << "Deleter should have been called after destruction of Arc.";
+}
+
+// TODO : ! Fix it
+// TEST_F(ArcWeakArcTest, MultipleStrongArcsOneWeakArc)
+// {
+//     auto strongArc1 = Arc::Arc<TestObject>(new TestObject());
+//     auto strongArc2 = strongArc1;
+//     Arc::WeakArc<TestObject> weakArc(strongArc1);
+
+//     EXPECT_EQ(weakArc.lock().use_count(), 2);
+//     EXPECT_EQ(TestObject::aliveCount, 1);
+// }
+//! ----------------
+
+TEST_F(ArcWeakArcTest, CustomDeleterWithWeakArc)
+{
+    bool deleted = false;
+    auto deleter = [&deleted](TestObject* obj) {
+        delete obj;
+        deleted = true;
+    };
+
+    {
+        auto strongArc = Arc::Arc<TestObject, decltype(deleter)>(new TestObject(), deleter);
+        Arc::WeakArc<TestObject, decltype(deleter)> weakArc(strongArc);
+    }
+
+    EXPECT_TRUE(deleted);
+    EXPECT_EQ(TestObject::aliveCount, 0);
 }
 
 int main(int argc, char** argv)
