@@ -5,6 +5,7 @@
 #include <cassert>
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 namespace Arc
 {
@@ -49,10 +50,15 @@ namespace Arc
 
         void release_weak(bool skipCounterDecrement = false)
         {
-            if (control && (skipCounterDecrement || control->weakCount.fetch_sub(1, std::memory_order_release) == 1)) {
+            if (control) {
+                if (!skipCounterDecrement) {
+                    control->weakCount.fetch_sub(1, std::memory_order_release);
+                }
                 std::atomic_thread_fence(std::memory_order_acquire);
-                if (control->strongCount.load(std::memory_order_relaxed) == 0) {
+                if (control->strongCount.load(std::memory_order_relaxed) == 0 &&
+                    control->weakCount.load(std::memory_order_relaxed) == 0) {
                     delete control;
+                    control = nullptr;
                 }
             }
         }
@@ -104,6 +110,8 @@ namespace Arc
 
         bool unique() const { return control && control->strongCount.load(std::memory_order_relaxed) == 1; }
         unsigned int use_count() const { return control ? control->strongCount.load(std::memory_order_relaxed) : 0; }
+
+        bool expired() const { return !control || control->strongCount.load(std::memory_order_relaxed) == 0; }
     };
 
     template <typename T, typename Deleter = std::default_delete<T>>
@@ -123,6 +131,49 @@ namespace Arc
             }
         }
 
+        WeakArc(const WeakArc& other) : ptr(other.ptr), control(other.control)
+        {
+            if (control) {
+                control->weakCount.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
+        WeakArc& operator=(const WeakArc& other)
+        {
+            if (this != &other) {
+                if (control && control->weakCount.fetch_sub(1, std::memory_order_release) == 1) {
+                    std::atomic_thread_fence(std::memory_order_acquire);
+                    if (control->strongCount.load(std::memory_order_relaxed) == 0) {
+                        delete control;
+                    }
+                }
+                ptr = other.ptr;
+                control = other.control;
+                if (control) {
+                    control->weakCount.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+            return *this;
+        }
+
+        WeakArc& operator=(const Arc<T, Deleter>& other)
+        {
+            if (this->ptr != other.ptr) {
+                if (control && control->weakCount.fetch_sub(1, std::memory_order_release) == 1) {
+                    std::atomic_thread_fence(std::memory_order_acquire);
+                    if (control->strongCount.load(std::memory_order_relaxed) == 0) {
+                        delete control;
+                    }
+                }
+                ptr = other.ptr;
+                control = other.control;
+                if (control) {
+                    control->weakCount.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+            return *this;
+        }
+
         ~WeakArc()
         {
             if (control && control->weakCount.fetch_sub(1, std::memory_order_release) == 1) {
@@ -136,11 +187,13 @@ namespace Arc
         Arc<T, Deleter> lock() const
         {
             if (control && control->strongCount.load(std::memory_order_relaxed) > 0) {
-                return Arc<T, Deleter>(ptr);
+                return Arc<T, Deleter>(ptr, *control->deleter);
             }
             return Arc<T, Deleter>();
         }
+
+        bool expired() const { return !control || control->strongCount.load(std::memory_order_relaxed) == 0; }
     };
 } // namespace Arc
 
-#endif /* end of namespace: ARC_HPP_yrpfns */
+#endif /* end of include guard: ARC_HPP_yrpfns */
