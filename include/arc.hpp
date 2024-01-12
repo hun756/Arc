@@ -124,6 +124,23 @@ namespace Arc
         unsigned int use_count() const { return control ? control->strongCount.load(std::memory_order_relaxed) : 0; }
 
         bool expired() const { return !control || control->strongCount.load(std::memory_order_relaxed) == 0; }
+
+        template <typename CustomDeleter>
+        void set_deleter(CustomDeleter&& deleter)
+        {
+            if (control) {
+                control->deleter = std::forward<CustomDeleter>(deleter);
+            }
+        }
+
+        template <typename... Args>
+        static Arc<T, Deleter> make_arc(Args&&... args)
+        {
+            T* obj = new T(std::forward<Args>(args)...);
+            return Arc<T, Deleter>(obj);
+        }
+
+        const Deleter& get_deleter() const { return control->deleter; }
     };
 
     template <typename T, typename Deleter>
