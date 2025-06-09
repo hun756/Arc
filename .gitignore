@@ -1,43 +1,142 @@
-# Prerequisites
-*.d
-
+### C++ Specific ###
 # Compiled Object files
-*.slo
-*.lo
 *.o
 *.obj
-
-# Precompiled Headers
-*.gch
-*.pch
+*.d
 
 # Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
-
 # Compiled Static libraries
-*.lai
-*.la
-*.a
 *.lib
+*.a
 
-# Executables
+# Executables and Debug files
 *.exe
 *.out
-*.app
+*.pdb
 
-# Build directories
-build/
+### Build Directories ###
+# General build
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Tt]emp/
+[Tt]mp/
+out/
 
-# Clang Cache
-.cache/
+# Build System Specific
+# CMake
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
 
-# Editor Extensions
-.vscode/
-.idea/
+# Meson
+builddir/
+meson-*/
+
+# SCons
+.sconsign.dblite
+*.sconsign
+
+### IDE and Editor Files ###
+# Visual Studio
 .vs/
+*.vc*
+*.sln
+*.suo
+*.user
+*.sdf
+*.opendb
+*.db
+*.ipch
+*.tlog
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains (CLion, etc.)
+.idea/
+*.iml
+*.iws
+cmake.out/
+
+# Qt Creator
+*.pro.user*
+*.qbs.user*
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+### Operating System Files ###
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+[Tt]humbs.db
+[Dd]esktop.ini
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+*.swp
+*.swo
+
+### Documentation ###
+# Doxygen
+#[Dd]ocs/
+doxygen*/
+html/
+latex/
+
+### Testing ###
+# Test files and coverage
+*_test
+*_tests
+*.gcda
+*.gcno
+*.gcov
+*.coverage
+
+### Dependencies ###
+# Package managers
+conan*/
+vcpkg_*/
+node_modules/
+
+### Temporary and Backup Files ###
+# Editor temporary
+*.bak
+*.tmp
+*.temp
+*~
+*.swp
+*.autosave
+
+# Build artifacts
+*.log
+*.cache
+*.patch
+
+### Version Control ###
+# Merge conflicts
+*.orig
+*.rej
+*.diff
