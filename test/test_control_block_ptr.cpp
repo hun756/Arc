@@ -1,8 +1,6 @@
 #include <arc/Arc.hpp>
 #include <gtest/gtest.h>
 #include <memory>
-#include <new>
-#include <vector>
 
 
 static int* g_deleted_ptr = nullptr;
