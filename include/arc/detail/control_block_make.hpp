@@ -30,6 +30,8 @@ public:
             allocator_, std::addressof(object), std::forward<Args>(args)...);
     }
 
+    ~control_block_make() {}
+
     void dispose() noexcept override
     {
         std::destroy_at(std::addressof(object));
@@ -40,11 +42,12 @@ public:
         using alloc_traits = std::allocator_traits<Allocator>;
         using rebound_alloc_type =
             typename alloc_traits::template rebind_alloc<control_block_make>;
+        using rebound_alloc_traits = std::allocator_traits<rebound_alloc_type>;
 
         rebound_alloc_type alloc(allocator_);
 
         this->~control_block_make();
-        alloc_traits::deallocate(alloc, this, 1);
+        rebound_alloc_traits::deallocate(alloc, this, 1);
     }
 
     void* get_deleter(const std::type_info&) noexcept override
@@ -57,4 +60,4 @@ public:
 
 } // namespace arc::detail
 
-#endif ///< End of include guard LIB_ARC_DETAIL_CONTROL_BLOCK_MAKE_HPP_x28hov
+#endif ///< End of include guard: LIB_ARC_DETAIL_CONTROL_BLOCK_MAKE_HPP_x28hov
