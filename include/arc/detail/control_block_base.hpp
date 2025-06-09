@@ -23,14 +23,12 @@
  * @brief Atomic Reference Counter namespace - The fortress of thread-safe
  * memory management
  */
-namespace arc
-{
 
 /**
  * @namespace arc::detail
  * @brief Internal implementation details - Here be dragons and cache-line magic
  */
-namespace detail
+namespace arc::detail
 {
 
 /**
@@ -144,7 +142,5 @@ struct control_block_base
 };
 
 } // namespace detail
-
-} // namespace arc
 
 #endif //< End of include guard LIB_ARC_DETAIL_CONTROL_BLOCK_BASE_HPP_yrpfns
