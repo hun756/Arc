@@ -8,8 +8,7 @@
 # - For larger projects, consider using multiple source groups
 set(SOURCES
     # Core modules
-    ModuleA.cpp  # Handles feature X
-    ModuleB.cpp  # Handles feature Y
+    Arc.cpp
     
     # Application entry point
     main.cpp     # Program start and orchestration

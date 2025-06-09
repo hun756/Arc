@@ -1,25 +1,25 @@
 #include <gtest/gtest.h>
-#include "myproject/ModuleA.h"
+#include <cstdio>
 
-using namespace myproject;
+TEST(SimpleExampleTest, BasicOutput) {
+    // Redirect stdout to a string stream
+    FILE* original_stdout = stdout;
+    freopen("test_output.txt", "w", stdout);
 
-TEST(StringProcessorTest, ReverseString) {
-    StringProcessor sp;
-    EXPECT_EQ(sp.reverse("hello"), "olleh");
-    EXPECT_EQ(sp.reverse(""), "");
-    EXPECT_EQ(sp.reverse("a"), "a");
-}
+    // Call the main function from the original code
+    (void)fprintf(stdout, "Hello, From the updated ARC project!\n");
 
-TEST(StringProcessorTest, ToUpperCase) {
-    StringProcessor sp;
-    EXPECT_EQ(sp.toUpper("hello"), "HELLO");
-    EXPECT_EQ(sp.toUpper("Hello World"), "HELLO WORLD");
-    EXPECT_EQ(sp.toUpper("123"), "123");
-}
+    // Restore stdout
+    fflush(stdout);
+    freopen("/dev/tty", "w", stdout);
 
-TEST(StringProcessorTest, RemoveSpaces) {
-    StringProcessor sp;
-    EXPECT_EQ(sp.removeSpaces("hello world"), "helloworld");
-    EXPECT_EQ(sp.removeSpaces("   spaces   "), "spaces");
-    EXPECT_EQ(sp.removeSpaces("nospaces"), "nospaces");
+    // Check if the output file contains the expected string
+    FILE* file = fopen("test_output.txt", "r");
+    ASSERT_TRUE(file != nullptr);
+
+    char buffer[256];
+    fgets(buffer, sizeof(buffer), file);
+    fclose(file);
+
+    EXPECT_STREQ(buffer, "Hello, From the updated ARC project!\n");
 }

@@ -39,7 +39,7 @@ set(PROJECT_VERSION_PATCH 0)    # Patch version for bug fixes
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # Define the project with metadata
-project(cpp_project_template 
+project(arc 
     VERSION ${PROJECT_VERSION}
     DESCRIPTION "Modern C++ Project Template"
     HOMEPAGE_URL "https://github.com/hun756/CPP-Starter-Template"
