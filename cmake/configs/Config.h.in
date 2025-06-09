@@ -1,0 +1,23 @@
+/**
+ * @file Config.h.in
+ * @brief Configuration template for CMake project versioning
+ *
+ * This template file is processed by CMake to generate a configuration header
+ * with proper version information for the project. During the CMake
+ * configuration stage, the @PROJECT_NAME@ and @PROJECT_VERSION_*@ placeholders
+ * are replaced with actual values from the CMakeLists.txt file.
+ *
+ * Once processed, this header provides consistent version macros that can be
+ * used throughout the application to access version information at compile
+ * time.
+ *
+ * @note This is a template file and should not be modified directly. Changes
+ * should be made to the CMakeLists.txt file that configures the project
+ * version.
+ */
+#pragma once
+
+#define @PROJECT_NAME @_VERSION_MAJOR @PROJECT_VERSION_MAJOR @
+#define @PROJECT_NAME @_VERSION_MINOR @PROJECT_VERSION_MINOR @
+#define @PROJECT_NAME @_VERSION_PATCH @PROJECT_VERSION_PATCH @
+#define @PROJECT_NAME @_VERSION "@PROJECT_VERSION@"
