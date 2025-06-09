@@ -10,8 +10,8 @@
  * cache-line alignment and memory ordering guarantees for zero-contention
  * shared ownership.
  */
-#ifndef ARC_HPP_yrpfns
-#define ARC_HPP_yrpfns
+#ifndef LIB_ARC_DETAIL_CONTROL_BLOCK_BASE_HPP_yrpfns
+#define LIB_ARC_DETAIL_CONTROL_BLOCK_BASE_HPP_yrpfns
 
 #include <atomic>
 #include <cstddef>
@@ -147,4 +147,4 @@ struct control_block_base
 
 } // namespace arc
 
-#endif //< End of include guard ARC_HPP_yrpfns
+#endif //< End of include guard LIB_ARC_DETAIL_CONTROL_BLOCK_BASE_HPP_yrpfns
