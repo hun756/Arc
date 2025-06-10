@@ -12,10 +12,28 @@ namespace arc
 {
 template <typename T>
 class weak_arc;
-}
+
+template <typename T>
+class arc;
+} // namespace arc
 
 namespace arc
 {
+
+namespace detail
+{
+struct arc_access
+{
+    template <typename T, typename U>
+    static arc<T> create_from(const arc<U>& other,
+                              typename arc<T>::pointer p) noexcept
+    {
+        if (p)
+            detail::increment_strong<T>(other.cb_);
+        return arc<T>(p, p ? other.cb_ : nullptr);
+    }
+};
+} // namespace detail
 
 template <typename T>
 class arc
@@ -25,6 +43,16 @@ class arc
 
     template <typename U>
     friend class weak_arc;
+
+    template <typename U, typename... Args>
+        requires(!std::is_array_v<U>)
+    friend arc<U> make_arc(Args&&...);
+
+    template <typename U, typename A, typename... Args>
+        requires(!std::is_array_v<U>)
+    friend arc<U> allocate_arc(const A&, Args&&...);
+
+    friend struct detail::arc_access;
 
 public:
     using element_type = std::remove_extent_t<T>;
@@ -146,10 +174,6 @@ void swap(arc<T>& a, arc<T>& b) noexcept
     a.swap(b);
 }
 
-} // namespace arc
-
-namespace arc
-{
 template <typename T>
 class weak_arc
 {
@@ -261,6 +285,91 @@ public:
         return arc<T>();
     }
 };
+
+template <typename T, typename... Args>
+    requires(!std::is_array_v<T>)
+arc<T> make_arc(Args&&... args)
+{
+    using Allocator = std::allocator<T>;
+    using ControlBlock = detail::control_block_make<T, Allocator>;
+
+    using CBAllocator = typename std::allocator_traits<
+        Allocator>::template rebind_alloc<ControlBlock>;
+
+    CBAllocator cb_alloc;
+    ControlBlock* cb_ptr =
+        std::allocator_traits<CBAllocator>::allocate(cb_alloc, 1);
+
+    try
+    {
+        std::allocator_traits<CBAllocator>::construct(
+            cb_alloc, cb_ptr, Allocator{}, std::forward<Args>(args)...);
+
+        return arc<T>(cb_ptr->get_ptr(), cb_ptr);
+    }
+    catch (...)
+    {
+        std::allocator_traits<CBAllocator>::deallocate(cb_alloc, cb_ptr, 1);
+        throw;
+    }
+}
+
+template <typename T, typename A, typename... Args>
+    requires(!std::is_array_v<T>)
+arc<T> allocate_arc(const A& alloc, Args&&... args)
+{
+    using ControlBlock = detail::control_block_make<T, A>;
+    using CBAllocator =
+        typename std::allocator_traits<A>::template rebind_alloc<ControlBlock>;
+
+    CBAllocator cb_alloc(alloc);
+    ControlBlock* cb_ptr =
+        std::allocator_traits<CBAllocator>::allocate(cb_alloc, 1);
+
+    try
+    {
+        std::allocator_traits<CBAllocator>::construct(
+            cb_alloc, cb_ptr, alloc, std::forward<Args>(args)...);
+        return arc<T>(cb_ptr->get_ptr(), cb_ptr);
+    }
+    catch (...)
+    {
+        std::allocator_traits<CBAllocator>::deallocate(cb_alloc, cb_ptr, 1);
+        throw;
+    }
+}
+
+template <typename T, typename U>
+    requires(!std::is_array_v<T> && !std::is_array_v<U>)
+arc<T> static_pointer_cast(const arc<U>& r) noexcept
+{
+    auto p = static_cast<typename arc<T>::pointer>(r.get());
+    return detail::arc_access::create_from<T, U>(r, p);
+}
+
+template <typename T, typename U>
+    requires(!std::is_array_v<T> && !std::is_array_v<U>)
+arc<T> const_pointer_cast(const arc<U>& r) noexcept
+{
+    auto p = const_cast<typename arc<T>::pointer>(r.get());
+    return detail::arc_access::create_from<T, U>(r, p);
+}
+
+template <typename T, typename U>
+    requires(!std::is_array_v<T> && !std::is_array_v<U>)
+arc<T> dynamic_pointer_cast(const arc<U>& r) noexcept
+{
+    auto p = dynamic_cast<typename arc<T>::pointer>(r.get());
+    return detail::arc_access::create_from<T, U>(r, p);
+}
+
+template <typename T, typename U>
+arc<T> reinterpret_pointer_cast(const arc<U>& r) noexcept
+{
+    auto p = reinterpret_cast<typename arc<T>::pointer>(r.get());
+    return detail::arc_access::create_from<T, U>(r, p);
+}
+
 } // namespace arc
 
 #endif //< End of include guard: LIB_ARC_HPP_q2n5gy
