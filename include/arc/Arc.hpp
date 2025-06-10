@@ -26,7 +26,7 @@ class arc
     friend class weak_arc;
 
 public:
-    using element_type = std::remove_extent<T>;
+    using element_type = std::remove_extent_t<T>;
     using pointer = element_type*;
     using weak_type = weak_arc<T>;
 
