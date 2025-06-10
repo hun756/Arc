@@ -8,7 +8,7 @@
 # - For larger projects, consider using multiple source groups
 set(SOURCES
     # Core modules
-    Arc.cpp
+    arc.cpp
     
     # Application entry point
     main.cpp     # Program start and orchestration
