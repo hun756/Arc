@@ -5,6 +5,7 @@
 #include <arc/detail/control_block_make.hpp>
 #include <arc/detail/control_block_ptr.hpp>
 #include <arc/detail/ref_count.hpp>
+#include <memory>
 #include <type_traits>
 
 namespace arc
@@ -41,6 +42,7 @@ private:
 
 public:
     constexpr arc() noexcept = default;
+
     constexpr arc(std::nullptr_t) noexcept {}
 
     template <typename Y>
@@ -74,6 +76,20 @@ public:
     {
         other.ptr_ = nullptr;
         other.cb_ = nullptr;
+    }
+
+    template <typename Y>
+        requires std::is_convertible_v<Y*, pointer>
+    explicit arc(const weak_arc<Y>& r)
+    {
+        auto temp = r.lock();
+
+        if (!temp)
+        {
+            throw std::bad_weak_ptr();
+        }
+
+        this->swap(temp);
     }
 
     ~arc()
@@ -130,6 +146,121 @@ void swap(arc<T>& a, arc<T>& b) noexcept
     a.swap(b);
 }
 
+} // namespace arc
+
+namespace arc
+{
+template <typename T>
+class weak_arc
+{
+    template <typename U>
+    friend class arc;
+
+    template <typename U>
+    friend class weak_arc;
+
+public:
+    using element_type = std::remove_extent_t<T>;
+
+private:
+    element_type* ptr_{};
+    detail::control_block_base* cb_{};
+
+public:
+    constexpr weak_arc() noexcept = default;
+
+    template <typename Y>
+        requires std::is_convertible_v<Y*, element_type*>
+    weak_arc(const arc<Y>& other) noexcept : ptr_(other.ptr_), cb_(other.cb_)
+    {
+        if (cb_)
+        {
+            detail::increment_weak<element_type>(cb_);
+        }
+    }
+
+    weak_arc(const weak_arc& other) noexcept : ptr_(other.ptr_), cb_(other.cb_)
+    {
+        if (cb_)
+        {
+            detail::increment_weak<element_type>(cb_);
+        }
+    }
+
+    weak_arc(weak_arc&& other) noexcept : ptr_(other.ptr_), cb_(other.cb_)
+    {
+        other.ptr_ = nullptr;
+        other.cb_ = nullptr;
+    }
+
+    ~weak_arc()
+    {
+        if (cb_)
+        {
+            detail::decrement_weak<element_type>(cb_);
+        }
+    }
+
+    weak_arc& operator=(const weak_arc& other) noexcept
+    {
+        if (this != &other)
+        {
+            weak_arc(other).swap(*this);
+        }
+        return *this;
+    }
+
+    weak_arc& operator=(weak_arc&& other) noexcept
+    {
+        if (this != &other)
+        {
+            weak_arc(std::move(other)).swap(*this);
+        }
+        return *this;
+    }
+
+    template <typename Y>
+        requires std::is_convertible_v<Y*, element_type*>
+    weak_arc& operator=(const arc<Y>& other) noexcept
+    {
+        weak_arc(other).swap(*this);
+        return *this;
+    }
+
+    void swap(weak_arc& other) noexcept
+    {
+        std::swap(ptr_, other.ptr_);
+        std::swap(cb_, other.cb_);
+    }
+
+    long long use_count() const noexcept
+    {
+        return cb_ ? cb_->strong_count.load(std::memory_order_relaxed) : 0;
+    }
+
+    bool expired() const noexcept { return use_count() == 0; }
+
+    arc<T> lock() const noexcept
+    {
+        if (!cb_)
+        {
+            return arc<T>();
+        }
+
+        std::int64_t count = cb_->strong_count.load(std::memory_order_relaxed);
+        while (count != 0)
+        {
+            if (cb_->strong_count.compare_exchange_weak(
+                    count, count + 1, std::memory_order_acquire,
+                    std::memory_order_relaxed))
+            {
+                return arc<T>(ptr_, cb_);
+            }
+        }
+
+        return arc<T>();
+    }
+};
 } // namespace arc
 
 #endif //< End of include guard: LIB_ARC_HPP_q2n5gy
