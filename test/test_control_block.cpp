@@ -1,4 +1,4 @@
-#include <arc/Arc.hpp>
+#include <arc/arc.hpp>
 #include <gtest/gtest.h>
 
 class MockControlBlock : public arc::detail::control_block_base

@@ -1,4 +1,4 @@
-#include <arc/Arc.hpp>
+#include <arc/arc.hpp>
 #include <gtest/gtest.h>
 #include <memory>
 
