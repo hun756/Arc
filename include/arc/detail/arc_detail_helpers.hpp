@@ -3,13 +3,12 @@
 
 #include <concepts>
 #include <type_traits>
-#include <utility>
 
 namespace arc::detail
 {
 
-template <typename T>
-concept deleter_for = requires(T deleter, std::remove_cvref_t<T>* ptr) {
+template <typename T, typename U = int>
+concept deleter_for = requires(T deleter, U* ptr) {
     { deleter(ptr) } noexcept;
 };
 

@@ -291,26 +291,26 @@ template <typename T, typename... Args>
     requires(!std::is_array_v<T>)
 arc<T> make_arc(Args&&... args)
 {
-    using Allocator = std::allocator<T>;
-    using ControlBlock = detail::control_block_make<T, Allocator>;
+    using non_cv_T = std::remove_cv_t<T>;
+    using allocator_type = std::allocator<non_cv_T>;
+    using control_type = detail::control_block_make<non_cv_T, allocator_type>;
+    using cb_allocator = typename std::allocator_traits<
+        allocator_type>::template rebind_alloc<control_type>;
 
-    using CBAllocator = typename std::allocator_traits<
-        Allocator>::template rebind_alloc<ControlBlock>;
-
-    CBAllocator cb_alloc;
-    ControlBlock* cb_ptr =
-        std::allocator_traits<CBAllocator>::allocate(cb_alloc, 1);
+    allocator_type alloc{};
+    cb_allocator cb_alloc(alloc);
+    auto cb_ptr = std::allocator_traits<cb_allocator>::allocate(cb_alloc, 1);
 
     try
     {
-        std::allocator_traits<CBAllocator>::construct(
-            cb_alloc, cb_ptr, Allocator{}, std::forward<Args>(args)...);
-
-        return arc<T>(cb_ptr->get_ptr(), cb_ptr);
+        std::allocator_traits<cb_allocator>::construct(
+            cb_alloc, cb_ptr, alloc, std::forward<Args>(args)...);
+        return arc<T>(static_cast<typename arc<T>::pointer>(cb_ptr->get_ptr()),
+                      cb_ptr);
     }
     catch (...)
     {
-        std::allocator_traits<CBAllocator>::deallocate(cb_alloc, cb_ptr, 1);
+        std::allocator_traits<cb_allocator>::deallocate(cb_alloc, cb_ptr, 1);
         throw;
     }
 }
@@ -319,7 +319,8 @@ template <typename T, typename A, typename... Args>
     requires(!std::is_array_v<T>)
 arc<T> allocate_arc(const A& alloc, Args&&... args)
 {
-    using ControlBlock = detail::control_block_make<T, A>;
+    using non_cv_T = std::remove_cv_t<T>;
+    using ControlBlock = detail::control_block_make<non_cv_T, A>;
     using CBAllocator =
         typename std::allocator_traits<A>::template rebind_alloc<ControlBlock>;
 
@@ -331,7 +332,8 @@ arc<T> allocate_arc(const A& alloc, Args&&... args)
     {
         std::allocator_traits<CBAllocator>::construct(
             cb_alloc, cb_ptr, alloc, std::forward<Args>(args)...);
-        return arc<T>(cb_ptr->get_ptr(), cb_ptr);
+        return arc<T>(static_cast<typename arc<T>::pointer>(cb_ptr->get_ptr()),
+                      cb_ptr);
     }
     catch (...)
     {

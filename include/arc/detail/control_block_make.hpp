@@ -12,7 +12,7 @@ namespace arc::detail
 template <typename T, typename Allocator>
 class control_block_make final : public control_block_base
 {
-    [[no_unique_address]] Allocator allocator_;
+    Allocator allocator_;
 
     union
     {

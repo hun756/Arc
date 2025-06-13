@@ -9,8 +9,8 @@ namespace arc::detail
 template <typename T, typename Deleter, typename Allocator>
 class control_block_ptr final : public control_block_base
 {
-    [[no_unique_address]] Deleter deleter_;
-    [[no_unique_address]] Allocator allocator_;
+    Deleter deleter_;
+    Allocator allocator_;
 
     T* ptr_;
 
