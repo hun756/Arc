@@ -1,6 +1,7 @@
 #ifndef LIB_ARC_HPP_q2n5gy
 #define LIB_ARC_HPP_q2n5gy
 
+#include <arc/detail/arc_detail_helpers.hpp>
 #include <arc/detail/control_block_base.hpp>
 #include <arc/detail/control_block_make.hpp>
 #include <arc/detail/control_block_ptr.hpp>
